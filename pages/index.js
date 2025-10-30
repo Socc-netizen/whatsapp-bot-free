@@ -10,60 +10,73 @@ export default function WhatsAppPanelFree() {
   const [isSending, setIsSending] = useState(false);
 
   const connectWhatsApp = async () => {
-    try {
-      setStatus('Generating QR Code...');
-      const response = await axios.get('/api/whatsapp/connect');
+  try {
+    setStatus('Generating QR Code...');
+    
+    // Call backend DIRECT - no proxy
+    const backendUrl = 'https://whatsapp-bot-backend-production.up.railway.app';
+    const response = await axios.get(`${backendUrl}/api/connect`);
+    
+    if (response.data.qr) {
       setQrCode(response.data.qr);
       setStatus('Scan QR Code dengan WhatsApp');
-    } catch (error) {
-      setStatus('Error: ' + error.message);
+    } else {
+      setStatus('Status: ' + response.data.status);
     }
-  };
+  } catch (error) {
+    console.error('Connection error:', error);
+    setStatus('Error: ' + (error.response?.data?.error || error.message));
+  }
+};
 
   const loadGroups = async () => {
-    try {
-      const response = await axios.get('/api/whatsapp/groups');
-      setGroups(response.data.groups || []);
-    } catch (error) {
-      console.error('Error loading groups:', error);
-    }
-  };
+  try {
+    const backendUrl = 'https://whatsapp-bot-backend-production.up.railway.app';
+    const response = await axios.get(`${backendUrl}/api/groups`);
+    setGroups(response.data.groups || []);
+  } catch (error) {
+    console.error('Error loading groups:', error);
+    setStatus('Error loading groups: ' + error.message);
+  }
+};
 
   const startPushKontak = async () => {
-    if (!selectedGroup || !message) {
-      alert('Pilih grup dan isi pesan terlebih dahulu!');
-      return;
-    }
+  if (!selectedGroup || !message) {
+    alert('Pilih grup dan isi pesan terlebih dahulu!');
+    return;
+  }
 
-    setIsSending(true);
-    try {
-      await axios.post('/api/whatsapp/pushkontak', {
-        groupId: selectedGroup,
-        message: message
-      });
-      alert('Push Kontak Berhasil Dimulai!');
-    } catch (error) {
-      alert('Error: ' + error.message);
-    } finally {
-      setIsSending(false);
-    }
-  };
+  setIsSending(true);
+  try {
+    const backendUrl = 'https://whatsapp-bot-backend-production.up.railway.app';
+    await axios.post(`${backendUrl}/api/pushkontak`, {
+      groupId: selectedGroup,
+      message: message
+    });
+    alert('Push Kontak Berhasil Dimulai!');
+  } catch (error) {
+    alert('Error: ' + error.message);
+  } finally {
+    setIsSending(false);
+  }
+};
 
   const saveContacts = async () => {
-    if (!selectedGroup) {
-      alert('Pilih grup terlebih dahulu!');
-      return;
-    }
+  if (!selectedGroup) {
+    alert('Pilih grup terlebih dahulu!');
+    return;
+  }
 
-    try {
-      await axios.post('/api/whatsapp/save-contacts', {
-        groupId: selectedGroup
-      });
-      alert('Kontak berhasil disimpan!');
-    } catch (error) {
-      alert('Error: ' + error.message);
-    }
-  };
+  try {
+    const backendUrl = 'https://whatsapp-bot-backend-production.up.railway.app';
+    await axios.post(`${backendUrl}/api/save-contacts`, {
+      groupId: selectedGroup
+    });
+    alert('Kontak berhasil disimpan!');
+  } catch (error) {
+    alert('Error: ' + (error.response?.data?.error || error.message));
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-blue-900 text-white p-4">
