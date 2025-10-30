@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://whatsapp-bot-backend-production.up.railway.app';
-
 export default async function handler(req, res) {
-  const path = req.query.all?.join('/') || '';
+  // Backend URL - langsung hardcode untuk testing
+  const BACKEND_URL = 'https://whatsapp-bot-backend-production.up.railway.app';
   
-  console.log(`Proxying request to: ${BACKEND_URL}/api/${path}`);
+  // Extract path dari query parameters
+  const path = req.query.all ? req.query.all.join('/') : '';
   
   try {
     const response = await axios({
@@ -13,29 +13,32 @@ export default async function handler(req, res) {
       url: `${BACKEND_URL}/api/${path}`,
       data: req.body,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'User-Agent': 'WhatsApp-Bot-Panel/1.0'
       },
-      timeout: 30000
+      timeout: 15000
     });
     
-    console.log('Proxy success:', response.status);
     res.status(response.status).json(response.data);
+    
   } catch (error) {
     console.error('Proxy error:', error.message);
     
-    if (error.response) {
-      // Backend responded with error
+    if (error.code === 'ECONNREFUSED') {
+      res.status(503).json({ 
+        error: 'Backend offline',
+        message: 'WhatsApp backend server is not responding'
+      });
+    } else if (error.response) {
       res.status(error.response.status).json(error.response.data);
     } else if (error.request) {
-      // No response from backend
-      res.status(503).json({ 
-        error: 'Backend service unavailable',
-        message: 'Cannot connect to WhatsApp backend server'
+      res.status(502).json({ 
+        error: 'Network error',
+        message: 'Cannot connect to backend server'
       });
     } else {
-      // Other error
       res.status(500).json({ 
-        error: 'Proxy error',
+        error: 'Internal proxy error',
         message: error.message 
       });
     }
